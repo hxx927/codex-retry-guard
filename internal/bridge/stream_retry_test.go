@@ -62,7 +62,6 @@ func TestStreamRetryUsesHostModelExecuteStream(t *testing.T) {
 		OK     bool `json:"ok"`
 		Result struct {
 			Body        []byte `json:"Body"`
-			CloseStream bool   `json:"CloseStream"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(raw, &env); err != nil {
@@ -70,9 +69,6 @@ func TestStreamRetryUsesHostModelExecuteStream(t *testing.T) {
 	}
 	if string(env.Result.Body) != "data: retry\n\n" {
 		t.Fatalf("result body = %q, want retried stream payload", string(env.Result.Body))
-	}
-	if !env.Result.CloseStream {
-		t.Fatal("CloseStream = false, want true")
 	}
 }
 
@@ -131,7 +127,6 @@ func TestStreamRetryLoopsUntilStreamStopsMatching(t *testing.T) {
 		OK     bool `json:"ok"`
 		Result struct {
 			Body        []byte `json:"Body"`
-			CloseStream bool   `json:"CloseStream"`
 		} `json:"result"`
 	}
 	if err := json.Unmarshal(raw, &env); err != nil {
@@ -139,9 +134,6 @@ func TestStreamRetryLoopsUntilStreamStopsMatching(t *testing.T) {
 	}
 	if string(env.Result.Body) != "data: ok\n\ndata: [DONE]\n\n" {
 		t.Fatalf("result body = %q", string(env.Result.Body))
-	}
-	if !env.Result.CloseStream {
-		t.Fatal("CloseStream = false, want true")
 	}
 }
 

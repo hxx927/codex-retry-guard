@@ -2,7 +2,10 @@ module github.com/router-for-me/CLIProxyAPI/v7/plugins/codex-retry-guard
 
 go 1.26.0
 
-require github.com/router-for-me/CLIProxyAPI/v7 v7.0.0
+require (
+	github.com/router-for-me/CLIProxyAPI/v7 v7.2.49
+	gopkg.in/yaml.v3 v3.0.1
+)
 
 require (
 	github.com/andybalholm/brotli v1.0.6 // indirect
@@ -48,7 +51,4 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/router-for-me/CLIProxyAPI/v7 => ../../

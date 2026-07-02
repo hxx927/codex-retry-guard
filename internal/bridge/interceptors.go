@@ -139,7 +139,7 @@ func buildRegistration() registrationResponse {
 	resp.Metadata.Name = "codex-retry-guard"
 	resp.Metadata.Version = "0.1.0"
 	resp.Metadata.Author = "router-for-me"
-	resp.Metadata.GitHubRepository = "https://github.com/router-for-me/CLIProxyAPI"
+	resp.Metadata.GitHubRepository = "https://github.com/hxx927/codex-retry-guard"
 	resp.Metadata.Logo = "https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/docs/logo.png"
 	resp.Metadata.ConfigFields = []pluginapi.ConfigField{
 		{
@@ -412,7 +412,7 @@ func handleStreamIntercept(state *PluginState, raw []byte) ([]byte, error) {
 		}
 		return okEnvelope(resp)
 	}
-	resp := pluginapi.StreamChunkInterceptResponse{DropChunk: decision.DropChunk, CloseStream: decision.CloseStream}
+	resp := pluginapi.StreamChunkInterceptResponse{DropChunk: decision.DropChunk}
 	if len(decision.ReplacementChunk) > 0 {
 		resp.Body = decision.ReplacementChunk
 		resp.Headers = http.Header{
@@ -421,7 +421,6 @@ func handleStreamIntercept(state *PluginState, raw []byte) ([]byte, error) {
 			"X-CPA-Status-Code":            []string{fmt.Sprintf("%d", cfg.NonStreamStatusCode)},
 		}
 		resp.ClearHeaders = []string{"Content-Length"}
-		resp.CloseStream = true
 	}
 	return okEnvelope(resp)
 }
@@ -508,7 +507,7 @@ func readRetriedStreamAttempt(state *PluginState, cfg pluginconfig.Config, path 
 				if decision.Retry && attemptsRemaining > 1 {
 					return pluginapi.StreamChunkInterceptResponse{}, true, nil
 				}
-				resp := pluginapi.StreamChunkInterceptResponse{DropChunk: decision.DropChunk, CloseStream: true}
+				resp := pluginapi.StreamChunkInterceptResponse{DropChunk: decision.DropChunk}
 				if len(decision.ReplacementChunk) > 0 {
 					resp.Body = decision.ReplacementChunk
 					resp.Headers = http.Header{
@@ -526,7 +525,7 @@ func readRetriedStreamAttempt(state *PluginState, cfg pluginconfig.Config, path 
 			if !inspectedRecorded {
 				state.Runtime.Metrics().RecordInspectedResponse(false, true)
 			}
-			return pluginapi.StreamChunkInterceptResponse{Body: joinChunks(chunks), CloseStream: true}, false, nil
+			return pluginapi.StreamChunkInterceptResponse{Body: joinChunks(chunks)}, false, nil
 		}
 	}
 }
