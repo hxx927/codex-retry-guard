@@ -1,0 +1,16 @@
+plugins:
+  enabled: true
+  dir: "/opt/cliproxyapi-vps/plugins"
+  configs:
+    codex-retry-guard:
+      enabled: true
+      priority: 1
+      models: []
+      auto_include_stream_usage: true
+      reasoning_equals: [516, 1034, 1552]
+      intercept_streaming: true
+      intercept_non_streaming: true
+      guard_retry_attempts: 3
+      non_stream_status_code: 502
+      stream_action: strict_502
+      log_match: true
