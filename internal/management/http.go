@@ -285,8 +285,43 @@ pre {
 		});
 	}
 
+	function decodeStorageValue(raw) {
+		var prefix = "enc::v1::";
+		var value = raw;
+		if (raw && raw.indexOf(prefix) === 0 && window.TextEncoder && window.TextDecoder && window.atob) {
+			try {
+				var keyText = "cli-proxy-api-webui::secure-storage|" + window.location.host + "|" + navigator.userAgent;
+				var key = new TextEncoder().encode(keyText);
+				var binary = window.atob(raw.slice(prefix.length));
+				var bytes = new Uint8Array(binary.length);
+				for (var i = 0; i < binary.length; i++) {
+					bytes[i] = binary.charCodeAt(i) ^ key[i % key.length];
+				}
+				value = new TextDecoder().decode(bytes);
+			} catch (err) {
+				value = raw;
+			}
+		}
+		try {
+			return JSON.parse(value);
+		} catch (err) {
+			return value;
+		}
+	}
+
+	function managementKey() {
+		try {
+			var key = decodeStorageValue(window.localStorage && window.localStorage.getItem("managementKey"));
+			return typeof key === "string" ? key.trim() : "";
+		} catch (err) {
+			return "";
+		}
+	}
+
 	function requestJSON(path) {
-		return fetch(path, { credentials: "include", cache: "no-store" }).then(function (resp) {
+		var key = managementKey();
+		var headers = key ? { Authorization: "Bearer " + key, "X-Management-Key": key } : {};
+		return fetch(path, { credentials: "include", cache: "no-store", headers: headers }).then(function (resp) {
 			if (!resp.ok) {
 				return resp.text().then(function (body) {
 					throw new Error(resp.status + " " + resp.statusText + (body ? " - " + body : ""));
