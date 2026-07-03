@@ -225,6 +225,28 @@ pre {
 	font-size: 12px;
 	margin-bottom: 4px;
 }
+.section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.section-head h2 { margin: 0; }
+.limit-control {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--muted);
+	font-size: 13px;
+}
+.limit-control input {
+	width: 72px;
+	border: 1px solid var(--line);
+	border-radius: 9px;
+	padding: 7px 8px;
+	background: rgba(255,255,255,.78);
+}
 .empty, .error {
 	border: 1px dashed var(--line);
 	border-radius: 10px;
@@ -238,6 +260,7 @@ pre {
 	main { padding: 18px; }
 	header { align-items: flex-start; flex-direction: column; }
 	.grid, .split { grid-template-columns: 1fr; }
+	.section-head { align-items: flex-start; flex-direction: column; }
 }
 </style>
 </head>
@@ -253,7 +276,10 @@ pre {
 	<section class="grid" id="metrics"></section>
 	<section class="split">
 		<div class="card">
-			<h2>Recent logs</h2>
+			<div class="section-head">
+				<h2>Recent logs</h2>
+				<label class="limit-control">Show <input id="log-limit" type="number" min="1" max="1000" step="1" value="80"> rows</label>
+			</div>
 			<div id="logs" class="logs"></div>
 		</div>
 		<div class="card">
@@ -270,6 +296,9 @@ pre {
 	var profileEl = document.getElementById("profile");
 	var summaryEl = document.getElementById("summary");
 	var refreshEl = document.getElementById("refresh");
+	var logLimitEl = document.getElementById("log-limit");
+	var latestStatus = null;
+	var latestLogs = null;
 
 	function text(value) {
 		return value == null ? "" : String(value);
@@ -318,6 +347,12 @@ pre {
 		}
 	}
 
+	function logLimit() {
+		var n = parseInt(logLimitEl && logLimitEl.value, 10);
+		if (!Number.isFinite(n) || n < 1) return 80;
+		return Math.min(n, 1000);
+	}
+
 	function requestJSON(path) {
 		var key = managementKey();
 		var headers = key ? { Authorization: "Bearer " + key, "X-Management-Key": key } : {};
@@ -332,6 +367,8 @@ pre {
 	}
 
 	function render(status, logs) {
+		latestStatus = status;
+		latestLogs = logs;
 		var m = status.metrics || {};
 		var cfg = status.config || {};
 		metricsEl.innerHTML = [
@@ -342,12 +379,15 @@ pre {
 		].join("");
 		summaryEl.innerHTML = cfg.enabled === false ? "Guard is disabled" : '<span class="accent">Guard is enabled</span>';
 		profileEl.textContent = JSON.stringify(m.request_profile || {}, null, 2);
-		var entries = (logs.entries || []).slice().reverse();
+		var allEntries = (logs.entries || []).slice().reverse();
+		var limit = logLimit();
+		var entries = allEntries.slice(0, limit);
 		if (!entries.length) {
 			logsEl.innerHTML = '<div class="empty">No plugin log entries yet. Logs appear after the guard inspects or matches traffic.</div>';
 			return;
 		}
-		logsEl.innerHTML = entries.map(function (entry) {
+		var limited = allEntries.length > entries.length ? '<div class="empty">Showing latest ' + escapeHTML(entries.length) + ' of ' + escapeHTML(allEntries.length) + ' loaded log entries. Raise the row limit to see more.</div>' : '';
+		logsEl.innerHTML = limited + entries.map(function (entry) {
 			return '<div class="entry"><div class="meta">#' + escapeHTML(entry.seq) + ' ' + escapeHTML(entry.at) + '</div><pre>' + escapeHTML(entry.message) + '</pre></div>';
 		}).join("");
 	}
@@ -379,6 +419,11 @@ pre {
 	}
 
 	refreshEl.addEventListener("click", refresh);
+	if (logLimitEl) {
+		logLimitEl.addEventListener("change", function () {
+			if (latestStatus && latestLogs) render(latestStatus, latestLogs);
+		});
+	}
 	initial();
 })();
 </script>
