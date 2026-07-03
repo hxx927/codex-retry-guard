@@ -137,7 +137,7 @@ func buildRegistration() registrationResponse {
 	var resp registrationResponse
 	resp.SchemaVersion = pluginabi.SchemaVersion
 	resp.Metadata.Name = "codex-retry-guard"
-	resp.Metadata.Version = "0.1.2"
+	resp.Metadata.Version = "0.1.3"
 	resp.Metadata.Author = "router-for-me"
 	resp.Metadata.GitHubRepository = "https://github.com/hxx927/codex-retry-guard"
 	resp.Metadata.Logo = "https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/docs/logo.png"
@@ -207,15 +207,22 @@ func handleRequestIntercept(state *PluginState, raw []byte, logRequest bool) ([]
 		return errorEnvelope("bad_request", err.Error())
 	}
 	reasoningEffort := metadataString(req.Metadata, cliproxyexecutor.ReasoningEffortMetadataKey)
-	state.Runtime.CaptureRequestProfile(captureRequestHeaders(req.Headers), reasoningEffort)
-	if logRequest {
-		logRequestProfile(state, requestPath(req.Metadata, ""), reasoningEffort)
+	cfg := state.Runtime.Config()
+	bodyModel := requestBodyModel(req.Body)
+	modelAllowed := requestModelMatches(cfg, req.Model, req.RequestedModel, bodyModel)
+	if modelAllowed {
+		state.Runtime.CaptureRequestProfile(captureRequestHeaders(req.Headers), reasoningEffort)
+		if logRequest {
+			logRequestProfile(state, requestPath(req.Metadata, ""), reasoningEffort, effectiveRequestModel(req.Model, req.RequestedModel, bodyModel))
+		}
 	}
 	resp := pluginapi.RequestInterceptResponse{}
-	if body, ok := rewriteStreamUsageRequest(state.Runtime.Config(), req); ok {
-		resp.Body = body
-		if logRequest {
-			logStreamUsageRewrite(state, requestPath(req.Metadata, req.SourceFormat))
+	if modelAllowed {
+		if body, ok := rewriteStreamUsageRequest(cfg, req); ok {
+			resp.Body = body
+			if logRequest {
+				logStreamUsageRewrite(state, requestPath(req.Metadata, req.SourceFormat), effectiveRequestModel(req.Model, req.RequestedModel, bodyModel))
+			}
 		}
 	}
 	return okEnvelope(resp)
@@ -639,6 +646,27 @@ func requestModelMatches(cfg pluginconfig.Config, models ...string) bool {
 	return false
 }
 
+func requestBodyModel(body []byte) string {
+	if len(body) == 0 {
+		return ""
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return ""
+	}
+	model, _ := payload["model"].(string)
+	return strings.TrimSpace(model)
+}
+
+func effectiveRequestModel(models ...string) string {
+	for _, model := range models {
+		if trimmed := strings.TrimSpace(model); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
 func endpointMatches(cfg pluginconfig.Config, path string) bool {
 	if len(cfg.Endpoints) == 0 {
 		return true
@@ -745,7 +773,7 @@ func logInspect(state *PluginState, streamKind, path string, reasoning int, acti
 	})
 }
 
-func logRequestProfile(state *PluginState, path string, reasoningEffort string) {
+func logRequestProfile(state *PluginState, path string, reasoningEffort string, model string) {
 	cfg := state.Runtime.Config()
 	if !cfg.LogMatch {
 		return
@@ -756,7 +784,7 @@ func logRequestProfile(state *PluginState, path string, reasoningEffort string) 
 	if strings.TrimSpace(reasoningEffort) == "" {
 		reasoningEffort = "unspecified"
 	}
-	message := fmt.Sprintf("[request] path=%s reasoning_effort=%s action=inspect", path, reasoningEffort)
+	message := fmt.Sprintf("[request] path=%s model=%s reasoning_effort=%s action=inspect", path, valueOrUnspecified(model), reasoningEffort)
 	state.Runtime.Metrics().AppendLog(time.Now().UTC().Format(time.RFC3339), message)
 	if state.CallHost == nil {
 		return
@@ -771,7 +799,14 @@ func logRequestProfile(state *PluginState, path string, reasoningEffort string) 
 	})
 }
 
-func logStreamUsageRewrite(state *PluginState, path string) {
+func valueOrUnspecified(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "unspecified"
+	}
+	return strings.TrimSpace(value)
+}
+
+func logStreamUsageRewrite(state *PluginState, path string, model string) {
 	cfg := state.Runtime.Config()
 	if !cfg.LogMatch {
 		return
@@ -779,7 +814,7 @@ func logStreamUsageRewrite(state *PluginState, path string) {
 	if strings.TrimSpace(path) == "" {
 		path = "/"
 	}
-	message := fmt.Sprintf("[request] path=%s action=add_stream_usage", path)
+	message := fmt.Sprintf("[request] path=%s model=%s action=add_stream_usage", path, valueOrUnspecified(model))
 	state.Runtime.Metrics().AppendLog(time.Now().UTC().Format(time.RFC3339), message)
 	if state.CallHost == nil {
 		return

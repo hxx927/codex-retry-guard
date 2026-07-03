@@ -153,6 +153,40 @@ func TestRequestInterceptUsesBodyModelWhenInterceptorModelFieldsAreEmpty(t *test
 	}
 }
 
+func TestRequestInterceptSkipsModelOutsideAllowListWithoutLogging(t *testing.T) {
+	cfg := pluginconfig.DefaultConfig()
+	cfg.Models = []string{"gpt-5.4", "gpt-5.5"}
+	state, err := NewPluginState(cfg)
+	if err != nil {
+		t.Fatalf("NewPluginState() error = %v", err)
+	}
+	request, _ := json.Marshal(pluginapi.RequestInterceptRequest{
+		Stream: true,
+		Body:   []byte(`{"model":"gpt-5.4-mini","stream":true,"messages":[]}`),
+		Metadata: map[string]any{
+			"request_path": "/v1/chat/completions",
+		},
+	})
+	raw, err := HandleMethod(state, pluginabi.MethodRequestInterceptBefore, request)
+	if err != nil {
+		t.Fatalf("HandleMethod() error = %v", err)
+	}
+	var env envelope
+	if err := json.Unmarshal(raw, &env); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	var resp pluginapi.RequestInterceptResponse
+	if err := json.Unmarshal(env.Result, &resp); err != nil {
+		t.Fatalf("json.Unmarshal(result) error = %v", err)
+	}
+	if len(resp.Body) != 0 {
+		t.Fatalf("RequestInterceptResponse.Body = %s, want empty for disallowed model", resp.Body)
+	}
+	if logs := state.Runtime.Metrics().Snapshot().Logs; len(logs) != 0 {
+		t.Fatalf("logs = %#v, want none for disallowed model", logs)
+	}
+}
+
 func TestRequestInterceptDoesNotRewriteNonStreamRequest(t *testing.T) {
 	state, err := NewPluginState(pluginconfig.DefaultConfig())
 	if err != nil {
