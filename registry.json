@@ -23,8 +23,8 @@
             "goos": "linux",
             "goarch": "amd64",
             "url": "https://github.com/hxx927/codex-retry-guard/releases/download/v0.1.9/codex-retry-guard_0.1.9_linux_amd64.zip",
-            "sha256": "a689eeb4594f3398e9c4735b04f08198fe36d0dca3376d9f464adc2739f941f9",
-            "size": 3870304
+            "sha256": "b93b5bc189d3e81dc472fbaea358554233a08fa9d711a2705de072372e666df7",
+            "size": 3873379
           }
         ]
       }
