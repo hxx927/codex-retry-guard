@@ -3,6 +3,7 @@ package management
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	pluginconfig "github.com/router-for-me/CLIProxyAPI/v7/plugins/codex-retry-guard/internal/config"
@@ -48,7 +49,7 @@ func TestStatusEndpointReturnsMetricsSnapshotAndRequestProfile(t *testing.T) {
 		Metrics struct {
 			TotalProxyRequestCount int64 `json:"total_proxy_request_count"`
 			RequestProfile         struct {
-				Headers map[string]string `json:"headers"`
+				Headers   map[string]string `json:"headers"`
 				Reasoning struct {
 					Effort string `json:"effort"`
 				} `json:"reasoning"`
@@ -85,7 +86,7 @@ func TestLogsEndpointReturnsRecordedLogs(t *testing.T) {
 	}
 	var payload struct {
 		TotalEntries int `json:"total_entries"`
-		Entries []struct {
+		Entries      []struct {
 			Message string `json:"message"`
 		} `json:"entries"`
 	}
@@ -116,5 +117,19 @@ func TestConfigEndpointRejectsInvalidReasoningList(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("StatusCode = %d, want 400", resp.StatusCode)
+	}
+}
+
+func TestStatusPageIncludesLogRefreshControls(t *testing.T) {
+	state, err := pluginruntime.NewState(pluginconfig.DefaultConfig())
+	if err != nil {
+		t.Fatalf("NewState() error = %v", err)
+	}
+	page := string(renderStatusPage(state))
+	if !strings.Contains(page, `id="auto-refresh"`) {
+		t.Fatal("status page missing auto refresh toggle")
+	}
+	if !strings.Contains(page, `id="log-limit" type="number" min="1" max="100" step="1" value="100"`) {
+		t.Fatal("status page log limit input should default to 100 and cap at 100")
 	}
 }

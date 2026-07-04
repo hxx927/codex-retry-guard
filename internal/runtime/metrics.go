@@ -15,6 +15,8 @@ type ReasoningProfile struct {
 	Effort string `json:"effort"`
 }
 
+const MaxLogEntries = 100
+
 type LogEntry struct {
 	Seq     int64  `json:"seq"`
 	At      string `json:"at"`
@@ -22,18 +24,18 @@ type LogEntry struct {
 }
 
 type Metrics struct {
-	totalProxyRequests      atomic.Int64
-	inspectedResponses      atomic.Int64
-	matchedResponses        atomic.Int64
-	blockedResponses        atomic.Int64
-	matchedStreaming        atomic.Int64
-	matchedNonStreaming     atomic.Int64
-	blockedStreaming        atomic.Int64
-	blockedNonStreaming     atomic.Int64
-	nextLogSeq              atomic.Int64
-	mu                      sync.Mutex
-	logEntries              []LogEntry
-	requestProfile          RequestProfile
+	totalProxyRequests  atomic.Int64
+	inspectedResponses  atomic.Int64
+	matchedResponses    atomic.Int64
+	blockedResponses    atomic.Int64
+	matchedStreaming    atomic.Int64
+	matchedNonStreaming atomic.Int64
+	blockedStreaming    atomic.Int64
+	blockedNonStreaming atomic.Int64
+	nextLogSeq          atomic.Int64
+	mu                  sync.Mutex
+	logEntries          []LogEntry
+	requestProfile      RequestProfile
 }
 
 type Snapshot struct {
@@ -121,8 +123,8 @@ func (m *Metrics) AppendLog(at string, message string) LogEntry {
 	}
 	m.mu.Lock()
 	m.logEntries = append(m.logEntries, entry)
-	if len(m.logEntries) > 2000 {
-		m.logEntries = append([]LogEntry(nil), m.logEntries[len(m.logEntries)-2000:]...)
+	if len(m.logEntries) > MaxLogEntries {
+		m.logEntries = append([]LogEntry(nil), m.logEntries[len(m.logEntries)-MaxLogEntries:]...)
 	}
 	m.mu.Unlock()
 	return entry

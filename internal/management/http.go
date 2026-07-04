@@ -262,6 +262,13 @@ pre {
 	margin-bottom: 14px;
 }
 .section-head h2 { margin: 0; }
+.refresh-controls {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	flex-wrap: wrap;
+}
 .limit-control {
 	display: inline-flex;
 	align-items: center;
@@ -290,6 +297,7 @@ pre {
 	header { align-items: flex-start; flex-direction: column; }
 	.grid, .split { grid-template-columns: 1fr; }
 	.section-head { align-items: flex-start; flex-direction: column; }
+	.refresh-controls { justify-content: flex-start; }
 }
 </style>
 </head>
@@ -300,14 +308,17 @@ pre {
 			<h1>Codex Retry Guard</h1>
 			<div class="sub" id="summary">Loading plugin status...</div>
 		</div>
-		<button id="refresh" type="button">Refresh</button>
 	</header>
 	<section class="grid" id="metrics"></section>
 	<section class="split">
 		<div class="card scroll-panel">
 			<div class="section-head">
 				<h2>Recent logs</h2>
-				<label class="limit-control">Show <input id="log-limit" type="number" min="1" max="1000" step="1" value="80"> rows</label>
+				<div class="refresh-controls">
+					<label class="limit-control"><input id="auto-refresh" type="checkbox" checked> Auto refresh</label>
+					<label class="limit-control">Show <input id="log-limit" type="number" min="1" max="100" step="1" value="100"> rows</label>
+					<button id="refresh" type="button">Refresh</button>
+				</div>
 			</div>
 			<div class="scroll-body"><div id="logs" class="logs"></div></div>
 		</div>
@@ -325,9 +336,11 @@ pre {
 	var profileEl = document.getElementById("profile");
 	var summaryEl = document.getElementById("summary");
 	var refreshEl = document.getElementById("refresh");
+	var autoRefreshEl = document.getElementById("auto-refresh");
 	var logLimitEl = document.getElementById("log-limit");
 	var latestStatus = null;
 	var latestLogs = null;
+	var refreshing = false;
 
 	function text(value) {
 		return value == null ? "" : String(value);
@@ -391,8 +404,8 @@ pre {
 
 	function logLimit() {
 		var n = parseInt(logLimitEl && logLimitEl.value, 10);
-		if (!Number.isFinite(n) || n < 1) return 80;
-		return Math.min(n, 1000);
+		if (!Number.isFinite(n) || n < 1) return 100;
+		return Math.min(n, 100);
 	}
 
 	function requestJSON(path) {
@@ -434,7 +447,10 @@ pre {
 		}).join("");
 	}
 
-	function refresh() {
+	function refresh(silent) {
+		if (refreshing) return;
+		refreshing = true;
+		if (refreshEl) refreshEl.disabled = true;
 		Promise.all([
 			requestJSON("/v0/management/plugins/codex-retry-guard/api/status"),
 			requestJSON("/v0/management/plugins/codex-retry-guard/api/logs")
@@ -442,7 +458,10 @@ pre {
 			render(values[0], values[1]);
 		}).catch(function (err) {
 			summaryEl.textContent = "Refresh failed";
-			logsEl.insertAdjacentHTML("afterbegin", '<div class="error">' + escapeHTML(err.message) + '</div>');
+			if (!silent) logsEl.insertAdjacentHTML("afterbegin", '<div class="error">' + escapeHTML(err.message) + '</div>');
+		}).finally(function () {
+			refreshing = false;
+			if (refreshEl) refreshEl.disabled = false;
 		});
 	}
 
@@ -460,7 +479,10 @@ pre {
 		}
 	}
 
-	refreshEl.addEventListener("click", refresh);
+	refreshEl.addEventListener("click", function () { refresh(false); });
+	window.setInterval(function () {
+		if (autoRefreshEl && autoRefreshEl.checked) refresh(true);
+	}, 10000);
 	if (logLimitEl) {
 		logLimitEl.addEventListener("change", function () {
 			if (latestStatus && latestLogs) render(latestStatus, latestLogs);
