@@ -183,6 +183,16 @@ button:hover { border-color: #cfc5b4; }
 	padding: 14px;
 	box-shadow: 0 8px 26px rgba(38, 33, 25, .06);
 }
+.scroll-panel {
+	display: flex;
+	flex-direction: column;
+	max-height: min(68vh, 760px);
+	min-height: 260px;
+}
+.scroll-body {
+	overflow: auto;
+	padding-right: 6px;
+}
 .label {
 	color: var(--muted);
 	font-size: 12px;
@@ -213,6 +223,10 @@ pre {
 .logs {
 	display: grid;
 	gap: 8px;
+}
+#profile {
+	white-space: pre;
+	word-break: normal;
 }
 .entry {
 	border: 1px solid var(--line);
@@ -275,16 +289,16 @@ pre {
 	</header>
 	<section class="grid" id="metrics"></section>
 	<section class="split">
-		<div class="card">
+		<div class="card scroll-panel">
 			<div class="section-head">
 				<h2>Recent logs</h2>
 				<label class="limit-control">Show <input id="log-limit" type="number" min="1" max="1000" step="1" value="80"> rows</label>
 			</div>
-			<div id="logs" class="logs"></div>
+			<div class="scroll-body"><div id="logs" class="logs"></div></div>
 		</div>
-		<div class="card">
+		<div class="card scroll-panel">
 			<h2>Last request profile</h2>
-			<pre id="profile">Loading...</pre>
+			<div class="scroll-body"><pre id="profile">Loading...</pre></div>
 		</div>
 	</section>
 </main>
