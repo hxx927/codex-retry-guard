@@ -36,6 +36,12 @@ plugins:
 
 Leave `models` empty to inspect all models, or set exact model names to inspect only those models.
 
+## Management page authentication
+
+The management page calls CPA management APIs from a plugin iframe. Since v0.1.7, the page reads the management key from both the legacy `managementKey` storage entry and the current CPAMC `cli-proxy-auth.state.managementKey` storage entry.
+
+If the CPAMC login does not persist the management key, the key may exist only in the parent page runtime memory. A plugin iframe cannot read that memory by itself. In that case the page needs a CPAMC-side bridge, or the user must sign in with key persistence enabled. This is a browser isolation limit, not a guard runtime issue.
+
 ## Build
 
 ```bash
