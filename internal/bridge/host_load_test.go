@@ -2,7 +2,10 @@ package bridge
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
@@ -10,8 +13,20 @@ import (
 )
 
 func TestBuiltPluginLoadsIntoHost(t *testing.T) {
-	root := filepath.Clean("/opt/src/worktrees/CLIProxyAPI/codex-cpa-plugin-retry-guard-main/plugins/codex-retry-guard")
-	pluginDir := filepath.Join(root, "dist")
+	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
+		t.Skipf("c-shared host load test only runs on linux/amd64, got %s/%s", runtime.GOOS, runtime.GOARCH)
+	}
+
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	pluginDir := t.TempDir()
+	pluginPath := filepath.Join(pluginDir, "codex-retry-guard.so")
+	cmd := exec.Command("go", "build", "-buildmode=c-shared", "-o", pluginPath, "./cmd/plugin")
+	cmd.Dir = repoRoot
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=1")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build plugin: %v\n%s", err, output)
+	}
+
 	enabled := true
 	host := internalpluginhost.New()
 	t.Cleanup(host.ShutdownAll)
