@@ -84,7 +84,7 @@ func Register(state *pluginruntime.State) Registration {
 		Description: "Shows retry guard status.",
 		Handler: handlerFunc(func(req pluginapi.ManagementRequest) (pluginapi.ManagementResponse, error) {
 			body := renderStatusPage(state)
-			return pluginapi.ManagementResponse{StatusCode: http.StatusOK, Headers: http.Header{"Content-Type": []string{"text/html; charset=utf-8"}}, Body: body}, nil
+			return pluginapi.ManagementResponse{StatusCode: http.StatusOK, Headers: http.Header{"Content-Type": []string{"text/html; charset=utf-8"}, "Cache-Control": []string{"no-store"}}, Body: body}, nil
 		}),
 	}
 	return Registration{Routes: []pluginapi.ManagementRoute{status, logs, configGet, configPost}, Resources: []pluginapi.ResourceRoute{resource}}
@@ -134,6 +134,10 @@ const statusPageHTML = `<!doctype html>
 	--warn: #b65d31;
 }
 * { box-sizing: border-box; }
+html, body {
+	height: 100%;
+	overflow: hidden;
+}
 body {
 	margin: 0;
 	background: var(--bg);
@@ -141,9 +145,13 @@ body {
 	font: 14px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 main {
+	height: 100vh;
 	max-width: 1120px;
 	margin: 0 auto;
 	padding: 28px;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
 }
 header {
 	display: flex;
@@ -151,6 +159,7 @@ header {
 	justify-content: space-between;
 	gap: 16px;
 	margin-bottom: 18px;
+	flex: 0 0 auto;
 }
 h1 {
 	margin: 0;
@@ -175,6 +184,7 @@ button:hover { border-color: #cfc5b4; }
 	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 12px;
 	margin-bottom: 12px;
+	flex: 0 0 auto;
 }
 .card {
 	background: var(--panel);
@@ -186,8 +196,7 @@ button:hover { border-color: #cfc5b4; }
 .scroll-panel {
 	display: flex;
 	flex-direction: column;
-	height: min(68vh, 760px);
-	min-height: 260px;
+	min-height: 0;
 	overflow: hidden;
 }
 .scroll-body {
@@ -211,6 +220,9 @@ button:hover { border-color: #cfc5b4; }
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
 	gap: 12px;
+	flex: 1 1 auto;
+	min-height: 0;
+	align-items: stretch;
 }
 h2 {
 	font-size: 15px;
