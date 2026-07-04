@@ -186,10 +186,13 @@ button:hover { border-color: #cfc5b4; }
 .scroll-panel {
 	display: flex;
 	flex-direction: column;
-	max-height: min(68vh, 760px);
+	height: min(68vh, 760px);
 	min-height: 260px;
+	overflow: hidden;
 }
 .scroll-body {
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow: auto;
 	padding-right: 6px;
 }
