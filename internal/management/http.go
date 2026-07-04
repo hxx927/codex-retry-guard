@@ -367,13 +367,26 @@ pre {
 		}
 	}
 
+	function storedValue(name) {
+		if (!window.localStorage) return null;
+		return decodeStorageValue(window.localStorage.getItem(name));
+	}
+
 	function managementKey() {
 		try {
-			var key = decodeStorageValue(window.localStorage && window.localStorage.getItem("managementKey"));
-			return typeof key === "string" ? key.trim() : "";
+			var key = storedValue("managementKey");
+			if (typeof key === "string" && key.trim()) return key.trim();
+
+			var auth = storedValue("cli-proxy-auth");
+			if (auth && typeof auth === "object") {
+				var state = auth.state && typeof auth.state === "object" ? auth.state : auth;
+				key = state && state.managementKey;
+				if (typeof key === "string" && key.trim()) return key.trim();
+			}
 		} catch (err) {
 			return "";
 		}
+		return "";
 	}
 
 	function logLimit() {
