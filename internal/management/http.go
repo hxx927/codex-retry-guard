@@ -340,6 +340,8 @@ pre {
 	var logLimitEl = document.getElementById("log-limit");
 	var latestStatus = null;
 	var latestLogs = null;
+	var latestRenderedAt = 0;
+	var latestActivityRate = null;
 	var refreshing = false;
 
 	function text(value) {
@@ -348,6 +350,27 @@ pre {
 
 	function card(label, value) {
 		return '<div class="card"><div class="label">' + label + '</div><div class="value">' + text(value) + '</div></div>';
+	}
+
+	function number(value) {
+		var n = Number(value || 0);
+		return Number.isFinite(n) ? n : 0;
+	}
+
+	function formatPercent(numerator, denominator) {
+		numerator = number(numerator);
+		denominator = number(denominator);
+		if (denominator <= 0) return "0%";
+		return (numerator * 100 / denominator).toFixed(2).replace(/\.?0+$/, "") + "%";
+	}
+
+	function formatActivity(rate) {
+		if (rate == null) return "Watching";
+		if (rate <= 0) return "Idle";
+		var formatted = rate >= 10 ? rate.toFixed(0) : rate.toFixed(1).replace(/\.0$/, "");
+		if (rate >= 100) return "High " + formatted + "/s";
+		if (rate >= 20) return "Active " + formatted + "/s";
+		return "Normal " + formatted + "/s";
 	}
 
 	function escapeHTML(value) {
@@ -422,14 +445,28 @@ pre {
 	}
 
 	function render(status, logs) {
+		var previousStatus = latestStatus;
+		var previousRenderedAt = latestRenderedAt;
+		var renderedAt = Date.now();
+		if (previousStatus && previousRenderedAt > 0) {
+			var prevMetrics = previousStatus.metrics || {};
+			var nextMetrics = status.metrics || {};
+			var inspectedDelta = Math.max(0, number(nextMetrics.inspected_response_count) - number(prevMetrics.inspected_response_count));
+			var seconds = Math.max(1, (renderedAt - previousRenderedAt) / 1000);
+			latestActivityRate = inspectedDelta / seconds;
+		}
 		latestStatus = status;
 		latestLogs = logs;
+		latestRenderedAt = renderedAt;
 		var m = status.metrics || {};
 		var cfg = status.config || {};
 		metricsEl.innerHTML = [
 			card("Inspected", m.inspected_response_count || 0),
 			card("Matched", m.matched_response_count || 0),
 			card("Blocked", m.blocked_response_count || 0),
+			card("Match rate", formatPercent(m.matched_response_count, m.inspected_response_count)),
+			card("Block rate", formatPercent(m.blocked_response_count, m.inspected_response_count)),
+			card("Activity", formatActivity(latestActivityRate)),
 			card("Log entries", logs.total_entries || 0)
 		].join("");
 		summaryEl.innerHTML = cfg.enabled === false ? "Guard is disabled" : '<span class="accent">Guard is enabled</span>';

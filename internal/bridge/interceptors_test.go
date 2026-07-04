@@ -215,6 +215,46 @@ func TestRequestInterceptDoesNotRewriteNonStreamRequest(t *testing.T) {
 	}
 }
 
+func TestStreamChunksOnlyCountInspectedWhenReasoningUsageAppears(t *testing.T) {
+	state, err := NewPluginState(pluginconfig.DefaultConfig())
+	if err != nil {
+		t.Fatalf("NewPluginState() error = %v", err)
+	}
+	chunks := []pluginapi.StreamChunkInterceptRequest{
+		{
+			SourceFormat: "openai",
+			Model:        "gpt-5.5",
+			Body:         []byte("data: {\"type\":\"response.output_text.delta\",\"delta\":\"hello\"}\n\n"),
+			ChunkIndex:   0,
+		},
+		{
+			SourceFormat: "openai",
+			Model:        "gpt-5.5",
+			Body:         []byte("data: {\"usage\":{\"output_tokens_details\":{\"reasoning_tokens\":777}}}\n\n"),
+			ChunkIndex:   1,
+		},
+		{
+			SourceFormat: "openai",
+			Model:        "gpt-5.5",
+			Body:         []byte("data: [DONE]\n\n"),
+			ChunkIndex:   2,
+		},
+	}
+	for _, chunk := range chunks {
+		request, _ := json.Marshal(chunk)
+		if _, err := HandleMethod(state, pluginabi.MethodResponseInterceptStreamChunk, request); err != nil {
+			t.Fatalf("HandleMethod() error = %v", err)
+		}
+	}
+	snapshot := state.Runtime.Metrics().Snapshot()
+	if snapshot.InspectedResponseCount != 1 {
+		t.Fatalf("inspected_response_count = %d, want 1", snapshot.InspectedResponseCount)
+	}
+	if snapshot.TotalProxyRequestCount != 1 {
+		t.Fatalf("total_proxy_request_count = %d, want 1", snapshot.TotalProxyRequestCount)
+	}
+}
+
 func TestPluginRegistersRequestInterceptor(t *testing.T) {
 	state, err := NewPluginState(pluginconfig.DefaultConfig())
 	if err != nil {

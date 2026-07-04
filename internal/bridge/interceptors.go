@@ -137,7 +137,7 @@ func buildRegistration() registrationResponse {
 	var resp registrationResponse
 	resp.SchemaVersion = pluginabi.SchemaVersion
 	resp.Metadata.Name = "codex-retry-guard"
-	resp.Metadata.Version = "0.1.8"
+	resp.Metadata.Version = "0.1.9"
 	resp.Metadata.Author = "router-for-me"
 	resp.Metadata.GitHubRepository = "https://github.com/hxx927/codex-retry-guard"
 	resp.Metadata.Logo = "https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/docs/logo.png"
@@ -390,12 +390,14 @@ func handleStreamIntercept(state *PluginState, raw []byte) ([]byte, error) {
 		return okEnvelope(pluginapi.StreamChunkInterceptResponse{})
 	}
 	path := requestPath(req.Metadata, req.SourceFormat)
-	state.Runtime.Metrics().RecordProxyAttempt()
 	decision, err := interceptor.InspectStreamChunk(cfg, path, req.Body, req.HistoryChunks, cfg.GuardRetryAttempts, req.ChunkIndex > 0)
 	if err != nil {
 		return errorEnvelope("inspect_failed", err.Error())
 	}
-	state.Runtime.Metrics().RecordInspectedResponse(decision.Matched, true)
+	if decision.ReasoningFound {
+		state.Runtime.Metrics().RecordProxyAttempt()
+		state.Runtime.Metrics().RecordInspectedResponse(decision.Matched, true)
+	}
 	if decision.Matched {
 		action := "observe_only"
 		if cfg.InterceptStreaming {

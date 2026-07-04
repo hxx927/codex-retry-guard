@@ -133,3 +133,16 @@ func TestStatusPageIncludesLogRefreshControls(t *testing.T) {
 		t.Fatal("status page log limit input should default to 100 and cap at 100")
 	}
 }
+
+func TestStatusPageIncludesDerivedHealthMetrics(t *testing.T) {
+	state, err := pluginruntime.NewState(pluginconfig.DefaultConfig())
+	if err != nil {
+		t.Fatalf("NewState() error = %v", err)
+	}
+	page := string(renderStatusPage(state))
+	for _, expected := range []string{"Match rate", "Block rate", "Activity"} {
+		if !strings.Contains(page, expected) {
+			t.Fatalf("status page missing %q", expected)
+		}
+	}
+}
