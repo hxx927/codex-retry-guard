@@ -6,7 +6,7 @@
       "name": "Codex Retry Guard",
       "description": "CPA plugin that guards suspicious Codex responses and retries through host callbacks.",
       "author": "hxx927",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "homepage": "https://github.com/hxx927/codex-retry-guard",
       "repository": "https://github.com/hxx927/codex-retry-guard",
       "license": "MIT",
@@ -22,9 +22,9 @@
           {
             "goos": "linux",
             "goarch": "amd64",
-            "url": "https://github.com/hxx927/codex-retry-guard/releases/download/v0.1.9/codex-retry-guard_0.1.9_linux_amd64.zip",
-            "sha256": "b93b5bc189d3e81dc472fbaea358554233a08fa9d711a2705de072372e666df7",
-            "size": 3873379
+            "url": "https://github.com/hxx927/codex-retry-guard/releases/download/v0.1.10/codex-retry-guard_0.1.10_linux_amd64.zip",
+            "sha256": "2a24ee1ab758e0eecc492e1aaee1f1f6ec88e567681b7057b2cc5e9421d36823",
+            "size": 3872044
           }
         ]
       }
