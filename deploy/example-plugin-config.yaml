@@ -8,6 +8,7 @@ plugins:
       models: []
       auto_include_stream_usage: true
       reasoning_equals: [516, 1034, 1552]
+      reasoning_match_mode: manual
       intercept_streaming: true
       intercept_non_streaming: true
       guard_retry_attempts: 3

@@ -23,6 +23,21 @@ func TestStreamPassesThroughWhenNoReasoningMatchAppears(t *testing.T) {
 	}
 }
 
+func TestStreamFormulaModeMatches518NMinus2ReasoningTokens(t *testing.T) {
+	cfg := pluginconfig.DefaultConfig()
+	cfg.ReasoningMatchMode = "formula_518n_minus_2"
+	decision, err := InspectStreamChunk(cfg, "/responses", []byte("data: {\"usage\":{\"output_tokens_details\":{\"reasoning_tokens\":2070}}}\n\n"), nil, 1, false)
+	if err != nil {
+		t.Fatalf("InspectStreamChunk() error = %v", err)
+	}
+	if !decision.Matched {
+		t.Fatal("Matched = false, want true for 2070 in formula mode")
+	}
+	if !decision.Retry {
+		t.Fatal("Retry = false, want true")
+	}
+}
+
 func TestStreamRequestsRetryBeforeAnyChunkEscapes(t *testing.T) {
 	cfg := pluginconfig.DefaultConfig()
 	decision, err := InspectStreamChunk(cfg, "/responses", []byte("data: {\"usage\":{\"completion_tokens_details\":{\"reasoning_tokens\":516}}}\n\n"), nil, 1, false)

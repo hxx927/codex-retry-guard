@@ -46,13 +46,7 @@ func InspectNonStream(cfg pluginconfig.Config, path string, body []byte, retryRe
 	if !ok {
 		return NonStreamDecision{}, nil
 	}
-	matched := false
-	for _, value := range cfg.ReasoningEquals {
-		if value == reasoning {
-			matched = true
-			break
-		}
-	}
+	matched := pluginconfig.ReasoningMatched(cfg, reasoning)
 	if !matched {
 		return NonStreamDecision{Reasoning: reasoning, ReasoningFound: true}, nil
 	}

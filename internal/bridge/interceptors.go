@@ -137,7 +137,7 @@ func buildRegistration() registrationResponse {
 	var resp registrationResponse
 	resp.SchemaVersion = pluginabi.SchemaVersion
 	resp.Metadata.Name = "codex-retry-guard"
-	resp.Metadata.Version = "0.1.9"
+	resp.Metadata.Version = "0.1.10-test"
 	resp.Metadata.Author = "router-for-me"
 	resp.Metadata.GitHubRepository = "https://github.com/hxx927/codex-retry-guard"
 	resp.Metadata.Logo = "https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/docs/logo.png"
@@ -160,7 +160,13 @@ func buildRegistration() registrationResponse {
 		{
 			Name:        "reasoning_equals",
 			Type:        pluginapi.ConfigFieldTypeArray,
-			Description: "触发防降智的 reasoning_tokens 数值列表。默认是 516、1034、1552。",
+			Description: "手动模式下触发防降智的 reasoning_tokens 数值列表。默认是 516、1034、1552。",
+		},
+		{
+			Name:        "reasoning_match_mode",
+			Type:        pluginapi.ConfigFieldTypeEnum,
+			EnumValues:  []string{pluginconfig.ReasoningMatchModeManual, pluginconfig.ReasoningMatchModeFormula518NSub2},
+			Description: "reasoning_tokens 命中模式。manual 使用上面的列表；formula_518n_minus_2 匹配 516、1034、1552、2070 等 518*n-2 序列。",
 		},
 		{
 			Name:        "intercept_streaming",

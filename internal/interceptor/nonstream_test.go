@@ -25,6 +25,22 @@ func TestNonStreamPassesWhenReasoningTokensDoNotMatch(t *testing.T) {
 	}
 }
 
+func TestNonStreamFormulaModeMatches518NMinus2ReasoningTokens(t *testing.T) {
+	cfg := pluginconfig.DefaultConfig()
+	cfg.ReasoningMatchMode = "formula_518n_minus_2"
+	body := []byte(`{"usage":{"output_tokens_details":{"reasoning_tokens":2070}}}`)
+	decision, err := InspectNonStream(cfg, "/v1/responses", body, 1)
+	if err != nil {
+		t.Fatalf("InspectNonStream() error = %v", err)
+	}
+	if !decision.Matched {
+		t.Fatal("Matched = false, want true for 2070 in formula mode")
+	}
+	if decision.Reasoning != 2070 {
+		t.Fatalf("Reasoning = %d, want 2070", decision.Reasoning)
+	}
+}
+
 func TestNonStreamRequestsRetryWhenReasoningTokensMatchAndBudgetRemains(t *testing.T) {
 	cfg := pluginconfig.DefaultConfig()
 	body := []byte(`{"usage":{"completion_tokens_details":{"reasoning_tokens":516}}}`)

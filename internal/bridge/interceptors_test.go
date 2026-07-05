@@ -54,6 +54,7 @@ func TestPluginRegistersVisibleConfigFields(t *testing.T) {
 		"models":                    pluginapi.ConfigFieldTypeArray,
 		"auto_include_stream_usage": pluginapi.ConfigFieldTypeBoolean,
 		"reasoning_equals":          pluginapi.ConfigFieldTypeArray,
+		"reasoning_match_mode":      pluginapi.ConfigFieldTypeEnum,
 		"guard_retry_attempts":      pluginapi.ConfigFieldTypeInteger,
 		"intercept_streaming":       pluginapi.ConfigFieldTypeBoolean,
 		"intercept_non_streaming":   pluginapi.ConfigFieldTypeBoolean,

@@ -65,12 +65,16 @@ func Register(state *pluginruntime.State) Registration {
 		Handler: handlerFunc(func(req pluginapi.ManagementRequest) (pluginapi.ManagementResponse, error) {
 			next := state.Config()
 			payload := struct {
-				ReasoningEquals []int `json:"reasoning_equals"`
+				ReasoningEquals    []int  `json:"reasoning_equals"`
+				ReasoningMatchMode string `json:"reasoning_match_mode"`
 			}{}
 			if err := json.Unmarshal(req.Body, &payload); err != nil {
 				return pluginapi.ManagementResponse{StatusCode: http.StatusBadRequest, Body: []byte(err.Error())}, nil
 			}
 			next.ReasoningEquals = pluginconfig.IntList(payload.ReasoningEquals)
+			if payload.ReasoningMatchMode != "" {
+				next.ReasoningMatchMode = payload.ReasoningMatchMode
+			}
 			if err := state.Reconfigure(next); err != nil {
 				return pluginapi.ManagementResponse{StatusCode: http.StatusBadRequest, Body: []byte(err.Error())}, nil
 			}

@@ -2,7 +2,7 @@
 
 Codex Retry Guard is a CPA dynamic plugin that ports the core `reasoning_tokens` guard from `codex-retry-gateway` into CLIProxyAPI/CPA.
 
-It inspects normal and streaming model responses, watches for suspicious `reasoning_tokens` values such as `516`, `1034`, and `1552`, and can retry or block those responses inside CPA. It also exposes a small management page for status, recent logs, and runtime counters.
+It inspects normal and streaming model responses, watches for suspicious `reasoning_tokens` values such as `516`, `1034`, and `1552`, and can retry or block those responses inside CPA. It also supports the upstream gateway's `518*n-2` formula mode for matching `516`, `1034`, `1552`, `2070`, and later values. It exposes a small management page for status, recent logs, and runtime counters.
 
 ## Features
 
@@ -26,6 +26,7 @@ plugins:
       models: []
       auto_include_stream_usage: true
       reasoning_equals: [516, 1034, 1552]
+      reasoning_match_mode: manual
       intercept_streaming: true
       intercept_non_streaming: true
       guard_retry_attempts: 3
@@ -35,6 +36,8 @@ plugins:
 ```
 
 Leave `models` empty to inspect all models, or set exact model names to inspect only those models.
+
+`reasoning_match_mode` defaults to `manual`, which only uses `reasoning_equals`. Set it to `formula_518n_minus_2` to match the full `518*n-2` sequence used by newer codex-retry-gateway releases.
 
 ## Management page authentication
 

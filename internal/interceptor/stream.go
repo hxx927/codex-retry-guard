@@ -56,13 +56,7 @@ func InspectStreamChunk(cfg pluginconfig.Config, path string, chunk []byte, hist
 	if !found {
 		return StreamDecision{}, nil
 	}
-	matched := false
-	for _, value := range cfg.ReasoningEquals {
-		if value == reasoning {
-			matched = true
-			break
-		}
-	}
+	matched := pluginconfig.ReasoningMatched(cfg, reasoning)
 	if !matched {
 		return StreamDecision{Reasoning: reasoning, ReasoningFound: true}, nil
 	}

@@ -80,3 +80,13 @@ func TestParseYAMLAcceptsStringReasoningEqualsFromManagementForm(t *testing.T) {
 		t.Fatalf("Models = %#v", cfg.Models)
 	}
 }
+
+func TestParseYAMLAcceptsReasoningMatchMode(t *testing.T) {
+	cfg, err := ParseYAML([]byte("reasoning_match_mode: formula_518n_minus_2\n"))
+	if err != nil {
+		t.Fatalf("ParseYAML() error = %v", err)
+	}
+	if cfg.ReasoningMatchMode != "formula_518n_minus_2" {
+		t.Fatalf("ReasoningMatchMode = %q, want formula_518n_minus_2", cfg.ReasoningMatchMode)
+	}
+}
