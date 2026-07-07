@@ -51,6 +51,25 @@ func Register(state *pluginruntime.State) Registration {
 			return pluginapi.ManagementResponse{StatusCode: http.StatusOK, Headers: http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, Body: body}, nil
 		}),
 	}
+	reset := pluginapi.ManagementRoute{
+		Method: http.MethodPost,
+		Path:   "/plugins/codex-retry-guard/api/reset",
+		Handler: handlerFunc(func(req pluginapi.ManagementRequest) (pluginapi.ManagementResponse, error) {
+			state.Metrics().Reset()
+			snapshot := state.Metrics().Snapshot()
+			body, _ := json.Marshal(map[string]any{
+				"ok":      true,
+				"config":  state.Config(),
+				"metrics": snapshot,
+				"logs": map[string]any{
+					"entries":       []pluginruntime.LogEntry{},
+					"total_entries": 0,
+					"latest_seq":    int64(0),
+				},
+			})
+			return pluginapi.ManagementResponse{StatusCode: http.StatusOK, Headers: http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}, Body: body}, nil
+		}),
+	}
 	configGet := pluginapi.ManagementRoute{
 		Method: http.MethodGet,
 		Path:   "/plugins/codex-retry-guard/config",
@@ -91,7 +110,7 @@ func Register(state *pluginruntime.State) Registration {
 			return pluginapi.ManagementResponse{StatusCode: http.StatusOK, Headers: http.Header{"Content-Type": []string{"text/html; charset=utf-8"}, "Cache-Control": []string{"no-store"}}, Body: body}, nil
 		}),
 	}
-	return Registration{Routes: []pluginapi.ManagementRoute{status, logs, configGet, configPost}, Resources: []pluginapi.ResourceRoute{resource}}
+	return Registration{Routes: []pluginapi.ManagementRoute{status, logs, configGet, configPost, reset}, Resources: []pluginapi.ResourceRoute{resource}}
 }
 
 var _ = pluginconfig.Config{}
@@ -321,6 +340,7 @@ pre {
 				<div class="refresh-controls">
 					<label class="limit-control"><input id="auto-refresh" type="checkbox" checked> Auto refresh</label>
 					<label class="limit-control">Show <input id="log-limit" type="number" min="1" max="100" step="1" value="100"> rows</label>
+					<button id="reset-data" type="button">Clear data</button>
 					<button id="refresh" type="button">Refresh</button>
 				</div>
 			</div>
@@ -340,6 +360,7 @@ pre {
 	var profileEl = document.getElementById("profile");
 	var summaryEl = document.getElementById("summary");
 	var refreshEl = document.getElementById("refresh");
+	var resetEl = document.getElementById("reset-data");
 	var autoRefreshEl = document.getElementById("auto-refresh");
 	var logLimitEl = document.getElementById("log-limit");
 	var latestStatus = null;
@@ -448,6 +469,20 @@ pre {
 		});
 	}
 
+	function postJSON(path) {
+		var key = managementKey();
+		var headers = key ? { Authorization: "Bearer " + key, "X-Management-Key": key } : {};
+		headers["Content-Type"] = "application/json";
+		return fetch(path, { method: "POST", credentials: "include", cache: "no-store", headers: headers, body: "{}" }).then(function (resp) {
+			if (!resp.ok) {
+				return resp.text().then(function (body) {
+					throw new Error(resp.status + " " + resp.statusText + (body ? " - " + body : ""));
+				});
+			}
+			return resp.json();
+		});
+	}
+
 	function render(status, logs) {
 		var previousStatus = latestStatus;
 		var previousRenderedAt = latestRenderedAt;
@@ -492,6 +527,7 @@ pre {
 		if (refreshing) return;
 		refreshing = true;
 		if (refreshEl) refreshEl.disabled = true;
+		if (resetEl) resetEl.disabled = true;
 		Promise.all([
 			requestJSON("/v0/management/plugins/codex-retry-guard/api/status"),
 			requestJSON("/v0/management/plugins/codex-retry-guard/api/logs")
@@ -503,6 +539,26 @@ pre {
 		}).finally(function () {
 			refreshing = false;
 			if (refreshEl) refreshEl.disabled = false;
+			if (resetEl) resetEl.disabled = false;
+		});
+	}
+
+	function resetData() {
+		if (refreshing) return;
+		if (!window.confirm("Clear plugin runtime counters and recent plugin logs?")) return;
+		refreshing = true;
+		if (refreshEl) refreshEl.disabled = true;
+		if (resetEl) resetEl.disabled = true;
+		postJSON("/v0/management/plugins/codex-retry-guard/api/reset").then(function (payload) {
+			latestActivityRate = null;
+			render({ config: payload.config || {}, metrics: payload.metrics || {} }, payload.logs || { entries: [], total_entries: 0, latest_seq: 0 });
+		}).catch(function (err) {
+			summaryEl.textContent = "Reset failed";
+			logsEl.insertAdjacentHTML("afterbegin", '<div class="error">' + escapeHTML(err.message) + '</div>');
+		}).finally(function () {
+			refreshing = false;
+			if (refreshEl) refreshEl.disabled = false;
+			if (resetEl) resetEl.disabled = false;
 		});
 	}
 
@@ -521,6 +577,9 @@ pre {
 	}
 
 	refreshEl.addEventListener("click", function () { refresh(false); });
+	if (resetEl) {
+		resetEl.addEventListener("click", resetData);
+	}
 	window.setInterval(function () {
 		if (autoRefreshEl && autoRefreshEl.checked) refresh(true);
 	}, 10000);

@@ -98,3 +98,29 @@ func TestMetricsRetainsOnlyLatestLogEntries(t *testing.T) {
 		t.Fatalf("last log = %q, want entry-105", logs[len(logs)-1].Message)
 	}
 }
+
+func TestMetricsResetClearsCountersLogsAndRequestProfile(t *testing.T) {
+	metrics := NewMetrics()
+	metrics.RecordProxyAttempt()
+	metrics.RecordInspectedResponse(true, true)
+	metrics.RecordBlockedResponse(true)
+	metrics.AppendLog("2026-07-04T00:00:00Z", "[match] stream path=/responses reasoning_tokens=516 action=return_status_502")
+	metrics.SetRequestProfile(RequestProfile{
+		Headers:    map[string]string{"user-agent": "CodexDesktop/1.0"},
+		Reasoning:  &ReasoningProfile{Effort: "high"},
+		CapturedAt: "2026-07-04T00:00:00Z",
+	})
+
+	metrics.Reset()
+
+	snap := metrics.Snapshot()
+	if snap.TotalProxyRequestCount != 0 || snap.InspectedResponseCount != 0 || snap.MatchedResponseCount != 0 || snap.BlockedResponseCount != 0 {
+		t.Fatalf("counters after reset = %#v, want zero", snap)
+	}
+	if len(snap.Logs) != 0 {
+		t.Fatalf("len(logs) = %d, want 0", len(snap.Logs))
+	}
+	if snap.RequestProfile.Headers != nil || snap.RequestProfile.Reasoning != nil || snap.RequestProfile.CapturedAt != "" {
+		t.Fatalf("request profile after reset = %#v, want empty", snap.RequestProfile)
+	}
+}

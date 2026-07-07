@@ -23,8 +23,8 @@ func TestManagementRegistersStatusAndConfigRoutes(t *testing.T) {
 		t.Fatalf("NewState() error = %v", err)
 	}
 	routes := Register(state)
-	if len(routes.Routes) != 4 {
-		t.Fatalf("len(Routes) = %d, want 4", len(routes.Routes))
+	if len(routes.Routes) != 5 {
+		t.Fatalf("len(Routes) = %d, want 5", len(routes.Routes))
 	}
 	if len(routes.Resources) != 1 {
 		t.Fatalf("len(Resources) = %d, want 1", len(routes.Resources))
@@ -101,6 +101,46 @@ func TestLogsEndpointReturnsRecordedLogs(t *testing.T) {
 	}
 }
 
+func TestResetEndpointClearsRuntimeMetricsAndLogs(t *testing.T) {
+	state, err := pluginruntime.NewState(pluginconfig.DefaultConfig())
+	if err != nil {
+		t.Fatalf("NewState() error = %v", err)
+	}
+	state.Metrics().RecordProxyAttempt()
+	state.Metrics().RecordInspectedResponse(true, false)
+	state.Metrics().RecordBlockedResponse(false)
+	state.Metrics().AppendLog("2026-07-01T00:00:00Z", "[match] non-stream path=/responses reasoning_tokens=516 action=return_status_502")
+	state.CaptureRequestProfile(map[string]string{"User-Agent": "CodexDesktop/1.0"}, "high")
+	routes := Register(state)
+	var resetRoute pluginapi.ManagementRoute
+	for _, route := range routes.Routes {
+		if route.Method == http.MethodPost && route.Path == "/plugins/codex-retry-guard/api/reset" {
+			resetRoute = route
+			break
+		}
+	}
+	if resetRoute.Handler == nil {
+		t.Fatal("reset route not registered")
+	}
+	resp, err := resetRoute.Handler.HandleManagement(nil, pluginapi.ManagementRequest{Method: http.MethodPost, Path: "/plugins/codex-retry-guard/api/reset"})
+	if err != nil {
+		t.Fatalf("HandleManagement() error = %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("StatusCode = %d, want 200", resp.StatusCode)
+	}
+	snap := state.Metrics().Snapshot()
+	if snap.TotalProxyRequestCount != 0 || snap.MatchedResponseCount != 0 || snap.BlockedResponseCount != 0 {
+		t.Fatalf("metrics after reset = %#v, want zero", snap)
+	}
+	if len(snap.Logs) != 0 {
+		t.Fatalf("len(logs) = %d, want 0", len(snap.Logs))
+	}
+	if snap.RequestProfile.Headers != nil {
+		t.Fatalf("request profile headers = %#v, want nil", snap.RequestProfile.Headers)
+	}
+}
+
 func TestConfigEndpointRejectsInvalidReasoningList(t *testing.T) {
 	state, err := pluginruntime.NewState(pluginconfig.DefaultConfig())
 	if err != nil {
@@ -131,6 +171,9 @@ func TestStatusPageIncludesLogRefreshControls(t *testing.T) {
 	}
 	if !strings.Contains(page, `id="log-limit" type="number" min="1" max="100" step="1" value="100"`) {
 		t.Fatal("status page log limit input should default to 100 and cap at 100")
+	}
+	if !strings.Contains(page, `id="reset-data"`) {
+		t.Fatal("status page missing reset data button")
 	}
 }
 

@@ -112,6 +112,25 @@ func (m *Metrics) RecordBlockedResponse(stream bool) {
 	m.blockedNonStreaming.Add(1)
 }
 
+func (m *Metrics) Reset() {
+	if m == nil {
+		return
+	}
+	m.totalProxyRequests.Store(0)
+	m.inspectedResponses.Store(0)
+	m.matchedResponses.Store(0)
+	m.blockedResponses.Store(0)
+	m.matchedStreaming.Store(0)
+	m.matchedNonStreaming.Store(0)
+	m.blockedStreaming.Store(0)
+	m.blockedNonStreaming.Store(0)
+	m.nextLogSeq.Store(0)
+	m.mu.Lock()
+	m.logEntries = nil
+	m.requestProfile = RequestProfile{}
+	m.mu.Unlock()
+}
+
 func (m *Metrics) AppendLog(at string, message string) LogEntry {
 	if m == nil {
 		return LogEntry{At: at, Message: message}
