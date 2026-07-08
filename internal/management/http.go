@@ -404,6 +404,21 @@ pre {
 		});
 	}
 
+	function formatLogTime(value) {
+		var date = new Date(value);
+		if (!Number.isFinite(date.getTime())) return text(value);
+		return date.toLocaleString("zh-CN", {
+			timeZone: "Asia/Shanghai",
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			hour12: false
+		}).replace(/\//g, "-") + " UTC+8";
+	}
+
 	function decodeStorageValue(raw) {
 		var prefix = "enc::v1::";
 		var value = raw;
@@ -519,7 +534,7 @@ pre {
 		}
 		var limited = allEntries.length > entries.length ? '<div class="empty">Showing latest ' + escapeHTML(entries.length) + ' of ' + escapeHTML(allEntries.length) + ' loaded log entries. Raise the row limit to see more.</div>' : '';
 		logsEl.innerHTML = limited + entries.map(function (entry) {
-			return '<div class="entry"><div class="meta">#' + escapeHTML(entry.seq) + ' ' + escapeHTML(entry.at) + '</div><pre>' + escapeHTML(entry.message) + '</pre></div>';
+			return '<div class="entry"><div class="meta">#' + escapeHTML(entry.seq) + ' ' + escapeHTML(formatLogTime(entry.at)) + '</div><pre>' + escapeHTML(entry.message) + '</pre></div>';
 		}).join("");
 	}
 

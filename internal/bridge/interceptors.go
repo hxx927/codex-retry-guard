@@ -137,7 +137,7 @@ func buildRegistration() registrationResponse {
 	var resp registrationResponse
 	resp.SchemaVersion = pluginabi.SchemaVersion
 	resp.Metadata.Name = "codex-retry-guard"
-	resp.Metadata.Version = "0.1.11"
+	resp.Metadata.Version = "0.1.12"
 	resp.Metadata.Author = "router-for-me"
 	resp.Metadata.GitHubRepository = "https://github.com/hxx927/codex-retry-guard"
 	resp.Metadata.Logo = "https://raw.githubusercontent.com/router-for-me/CLIProxyAPI/main/docs/logo.png"

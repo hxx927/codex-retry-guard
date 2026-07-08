@@ -177,6 +177,20 @@ func TestStatusPageIncludesLogRefreshControls(t *testing.T) {
 	}
 }
 
+func TestStatusPageFormatsLogTimesAsUTCPlus8(t *testing.T) {
+	state, err := pluginruntime.NewState(pluginconfig.DefaultConfig())
+	if err != nil {
+		t.Fatalf("NewState() error = %v", err)
+	}
+	page := string(renderStatusPage(state))
+	if !strings.Contains(page, `Asia/Shanghai`) {
+		t.Fatal("status page should format log timestamps in Asia/Shanghai")
+	}
+	if !strings.Contains(page, `formatLogTime(entry.at)`) {
+		t.Fatal("status page should render log metadata with formatted UTC+8 timestamps")
+	}
+}
+
 func TestStatusPageIncludesDerivedHealthMetrics(t *testing.T) {
 	state, err := pluginruntime.NewState(pluginconfig.DefaultConfig())
 	if err != nil {
